@@ -180,19 +180,30 @@ public final class PairedStats implements Serializable {
    */
   public LinearTransformation leastSquaresFit() {
     checkState(count() > 1);
+
     if (isNaN(sumOfProductsOfDeltas)) {
       return LinearTransformation.forNaN();
     }
+
+    // Cache fields locally to reduce repeated field accesses in hot paths.
+    final Stats xStats = this.xStats;
+    final Stats yStats = this.yStats;
+
     double xSumOfSquaresOfDeltas = xStats.sumOfSquaresOfDeltas();
     if (xSumOfSquaresOfDeltas > 0.0) {
-      if (yStats.sumOfSquaresOfDeltas() > 0.0) {
+      double ySumOfSquaresOfDeltas = yStats.sumOfSquaresOfDeltas();
+      if (ySumOfSquaresOfDeltas > 0.0) {
+        // Only compute means and slope when both variances are positive.
         return LinearTransformation.mapping(xStats.mean(), yStats.mean())
             .withSlope(sumOfProductsOfDeltas / xSumOfSquaresOfDeltas);
       } else {
+        // x has variance, y doesn't: horizontal line at y mean.
         return LinearTransformation.horizontal(yStats.mean());
       }
     } else {
-      checkState(yStats.sumOfSquaresOfDeltas() > 0.0);
+      double ySumOfSquaresOfDeltas = yStats.sumOfSquaresOfDeltas();
+      checkState(ySumOfSquaresOfDeltas > 0.0);
+      // y has variance, x doesn't: vertical line at x mean.
       return LinearTransformation.vertical(xStats.mean());
     }
   }
