@@ -330,7 +330,14 @@ public final class Iterables {
       Collection<? extends T> c = (Collection<? extends T>) elementsToAdd;
       return addTo.addAll(c);
     }
-    return Iterators.addAll(addTo, checkNotNull(elementsToAdd).iterator());
+    // Inline the iteration to avoid the extra method call and reduce overhead on the hot path.
+    Iterator<? extends T> iterator = checkNotNull(elementsToAdd).iterator();
+    boolean modified = false;
+    while (iterator.hasNext()) {
+      // Use primitive boolean OR accumulation to avoid unnecessary boxing or extra objects.
+      modified |= addTo.add(iterator.next());
+    }
+    return modified;
   }
 
   /**
