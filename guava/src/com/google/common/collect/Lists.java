@@ -1049,6 +1049,29 @@ public final class Lists {
   /** An implementation of {@link List#addAll(int, Collection)}. */
   static <E extends @Nullable Object> boolean addAllImpl(
       List<E> list, int index, Iterable<? extends E> elements) {
+    // Fast-path: if elements is a Collection, delegate to the bulk addAll implementation which
+    // can be implemented efficiently by the list (e.g. ArrayList using a single array copy).
+    if (elements instanceof Collection) {
+      @SuppressWarnings("unchecked") // safe because we just checked the runtime type
+      Collection<? extends E> c = (Collection<? extends E>) elements;
+      return list.addAll(index, c);
+    }
+
+    // If the target list supports random access, buffer the iterable to avoid repeated O(n)
+    // element shifts when inserting one-by-one. This turns what could be quadratic behavior
+    // into linear work plus a single bulk insert.
+    if (list instanceof RandomAccess) {
+      ArrayList<E> buffer = new ArrayList<>();
+      for (E e : elements) {
+        buffer.add(e);
+      }
+      if (buffer.isEmpty()) {
+        return false;
+      }
+      return list.addAll(index, buffer);
+    }
+
+    // Fallback to the original element-by-element insertion using a ListIterator.
     boolean changed = false;
     ListIterator<E> listIterator = list.listIterator(index);
     for (E e : elements) {
