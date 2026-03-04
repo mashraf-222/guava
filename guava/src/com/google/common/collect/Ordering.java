@@ -584,6 +584,25 @@ public abstract class Ordering<T extends @Nullable Object> implements Comparator
    */
   @ParametricNullness
   public <E extends T> E min(Iterable<E> iterable) {
+    // Fast-path for RandomAccess Lists to avoid Iterator allocation and its per-element overhead.
+    // Behavior is preserved: we return the first minimal element encountered and throw the same
+    // exceptions for empty iterables.
+    if (iterable instanceof List && iterable instanceof java.util.RandomAccess) {
+      @SuppressWarnings("unchecked") // safe because of instanceof List
+      List<E> list = (List<E>) iterable;
+      final int size = list.size();
+      if (size == 0) {
+        throw new NoSuchElementException();
+      }
+      E min = list.get(0);
+      for (int i = 1; i < size; i++) {
+        E e = list.get(i);
+        if (compare(e, min) < 0) {
+          min = e;
+        }
+      }
+      return min;
+    }
     return min(iterable.iterator());
   }
 
