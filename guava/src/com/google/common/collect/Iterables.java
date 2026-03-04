@@ -73,12 +73,13 @@ public final class Iterables {
   public static <T extends @Nullable Object> Iterable<T> unmodifiableIterable(
       Iterable<? extends T> iterable) {
     checkNotNull(iterable);
-    if (iterable instanceof UnmodifiableIterable || iterable instanceof ImmutableCollection) {
+    final Iterable<? extends T> in = iterable;
+    if (in instanceof UnmodifiableIterable || in instanceof ImmutableCollection) {
       @SuppressWarnings("unchecked") // Since it's unmodifiable, the covariant cast is safe
-      Iterable<T> result = (Iterable<T>) iterable;
+      Iterable<T> result = (Iterable<T>) in;
       return result;
     }
-    return new UnmodifiableIterable<>(iterable);
+    return new UnmodifiableIterable<>(in);
   }
 
   /**
