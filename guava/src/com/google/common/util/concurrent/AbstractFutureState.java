@@ -139,12 +139,15 @@ abstract class AbstractFutureState<V extends @Nullable Object> extends InternalF
     long endNanos = remainingNanos > 0 ? System.nanoTime() + remainingNanos : 0;
     long_wait_loop:
     if (remainingNanos >= SPIN_THRESHOLD_NANOS) {
+      // Cache TOMBSTONE locally to avoid repeated static lookups.
+      final Waiter tombstone = Waiter.TOMBSTONE;
       Waiter oldHead = waitersField;
-      if (oldHead != Waiter.TOMBSTONE) {
+      if (oldHead != tombstone) {
         Waiter node = new Waiter();
         do {
           node.setNext(oldHead);
           if (casWaiters(oldHead, node)) {
+            // Successful insertion; park loop:
             while (true) {
               OverflowAvoidingLockSupport.parkNanos(this, remainingNanos);
               // Check interruption first, if we woke up due to interruption we need to honor that.
@@ -169,8 +172,9 @@ abstract class AbstractFutureState<V extends @Nullable Object> extends InternalF
               }
             }
           }
-          oldHead = waitersField; // re-read and loop.
-        } while (oldHead != Waiter.TOMBSTONE);
+          // CAS failed; re-read head and retry
+          oldHead = waitersField;
+        } while (oldHead != tombstone);
       }
       // re-read valueField, if we get here then we must have observed a TOMBSTONE while trying to
       // add a waiter.
@@ -192,36 +196,38 @@ abstract class AbstractFutureState<V extends @Nullable Object> extends InternalF
 
     String futureToString = toString();
     String unitString = unit.toString().toLowerCase(Locale.ROOT);
-    String message = "Waited " + timeout + " " + unit.toString().toLowerCase(Locale.ROOT);
+    StringBuilder messageBuilder = new StringBuilder();
+    messageBuilder.append("Waited ").append(timeout).append(" ").append(unitString);
     // Only report scheduling delay if larger than our spin threshold - otherwise it's just noise
     if (remainingNanos + SPIN_THRESHOLD_NANOS < 0) {
       // We over-waited for our timeout.
-      message += " (plus ";
+      messageBuilder.append(" (plus ");
       long overWaitNanos = -remainingNanos;
       long overWaitUnits = unit.convert(overWaitNanos, NANOSECONDS);
       long overWaitLeftoverNanos = overWaitNanos - unit.toNanos(overWaitUnits);
       boolean shouldShowExtraNanos =
           overWaitUnits == 0 || overWaitLeftoverNanos > SPIN_THRESHOLD_NANOS;
       if (overWaitUnits > 0) {
-        message += overWaitUnits + " " + unitString;
+        messageBuilder.append(overWaitUnits).append(" ").append(unitString);
         if (shouldShowExtraNanos) {
-          message += ",";
+          messageBuilder.append(",");
         }
-        message += " ";
+        messageBuilder.append(" ");
       }
       if (shouldShowExtraNanos) {
-        message += overWaitLeftoverNanos + " nanoseconds ";
+        messageBuilder.append(overWaitLeftoverNanos).append(" nanoseconds ");
       }
 
-      message += "delay)";
+      messageBuilder.append("delay)");
     }
     // It's confusing to see a completed future in a timeout message; if isDone() returns false,
     // then we know it must have given a pending toString value earlier. If not, then the future
     // completed after the timeout expired, and the message might be success.
+    String baseMessage = messageBuilder.toString();
     if (isDone()) {
-      throw new TimeoutException(message + " but future completed as timeout expired");
+      throw new TimeoutException(baseMessage + " but future completed as timeout expired");
     }
-    throw new TimeoutException(message + " for " + futureToString);
+    throw new TimeoutException(baseMessage + " for " + futureToString);
   }
 
   @ParametricNullness
