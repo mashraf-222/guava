@@ -275,6 +275,24 @@ public final class Iterables {
   @ParametricNullness
   public static <T extends @Nullable Object> T getOnlyElement(
       Iterable<? extends T> iterable, @ParametricNullness T defaultValue) {
+    // Fast-path for Collections to avoid creating an iterator in common cases.
+    if (iterable instanceof Collection) {
+      Collection<? extends T> c = (Collection<? extends T>) iterable;
+      int size = c.size();
+      if (size == 0) {
+        return defaultValue;
+      }
+      if (size == 1) {
+        if (c instanceof List) {
+          // List.get(0) is typically cheaper than obtaining an iterator.
+          return ((List<? extends T>) c).get(0);
+        } else {
+          // Non-List collection with a single element: get it via iterator.
+          return c.iterator().next();
+        }
+      }
+      // For size > 1 fall through to Iterators.getOnlyElement to preserve exception behavior.
+    }
     return Iterators.getOnlyElement(iterable.iterator(), defaultValue);
   }
 
