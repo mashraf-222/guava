@@ -357,12 +357,13 @@ public final class Booleans {
       return ((BooleanArrayAsList) collection).toBooleanArray();
     }
 
-    Object[] boxedArray = collection.toArray();
+    // Use a typed Boolean[] snapshot to avoid per-element runtime casts from Object to Boolean.
+    Boolean[] boxedArray = collection.toArray(new Boolean[0]);
     int len = boxedArray.length;
     boolean[] array = new boolean[len];
     for (int i = 0; i < len; i++) {
       // checkNotNull for GWT (do not optimize)
-      array[i] = (Boolean) checkNotNull(boxedArray[i]);
+      array[i] = checkNotNull(boxedArray[i]);
     }
     return array;
   }
