@@ -157,7 +157,13 @@ public final class Lists {
     checkNonnegative(arraySize, "arraySize");
 
     // TODO(kevinb): Figure out the right behavior, and document it
-    return Ints.saturatedCast(5L + arraySize + (arraySize / 10));
+    int increment = arraySize / 10;
+    int result = arraySize + 5 + increment;
+    // If overflow occurred the result will be negative; saturate to Integer.MAX_VALUE.
+    if (result < 0) {
+      return Integer.MAX_VALUE;
+    }
+    return result;
   }
 
   /**
