@@ -159,7 +159,13 @@ public final class Booleans {
    *     such index exists.
    */
   public static int indexOf(boolean[] array, boolean target) {
-    return indexOf(array, target, 0, array.length);
+    int len = array.length;
+    for (int i = 0; i < len; i++) {
+      if (array[i] == target) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   // TODO(kevinb): consider making this public
