@@ -898,82 +898,97 @@ public final class Iterables {
   }
 
   /**
-   * Returns a view of {@code iterable} that skips its first {@code numberToSkip} elements. If
-   * {@code iterable} contains fewer than {@code numberToSkip} elements, the returned iterable skips
-   * all of its elements.
-   *
-   * <p>Modifications to the underlying {@link Iterable} before a call to {@code iterator()} are
-   * reflected in the returned iterator. That is, the iterator skips the first {@code numberToSkip}
-   * elements that exist when the {@code Iterator} is created, not when {@code skip()} is called.
-   *
-   * <p>The returned iterable's iterator supports {@code remove()} if the iterator of the underlying
-   * iterable supports it. Note that it is <i>not</i> possible to delete the last skipped element by
-   * immediately calling {@code remove()} on that iterator, as the {@code Iterator} contract states
-   * that a call to {@code remove()} before a call to {@code next()} will throw an {@link
-   * IllegalStateException}.
-   *
-   * <p><b>{@code Stream} equivalent:</b> {@link Stream#skip}
-   *
-   * @since 3.0
-   */
-  public static <T extends @Nullable Object> Iterable<T> skip(
-      Iterable<T> iterable, int numberToSkip) {
-    checkNotNull(iterable);
-    checkArgument(numberToSkip >= 0, "number to skip cannot be negative");
+     * Returns a view of {@code iterable} that skips its first {@code numberToSkip} elements. If
+     * {@code iterable} contains fewer than {@code numberToSkip} elements, the returned iterable skips
+     * all of its elements.
+     *
+     * <p>Modifications to the underlying {@link Iterable} before a call to {@code iterator()} are
+     * reflected in the returned iterator. That is, the iterator skips the first {@code numberToSkip}
+     * elements that exist when the {@code Iterator} is created, not when {@code skip()} is called.
+     *
+     * <p>The returned iterable's iterator supports {@code remove()} if the iterator of the underlying
+     * iterable supports it. Note that it is <i>not</i> possible to delete the last skipped element by
+     * immediately calling {@code remove()} on that iterator, as the {@code Iterator} contract states
+     * that a call to {@code remove()} before a call to {@code next()} will throw an {@link
+     * IllegalStateException}.
+     *
+     * <p><b>{@code Stream} equivalent:</b> {@link Stream#skip}
+     *
+     * @since 3.0
+     */
+    public static <T extends @Nullable Object> Iterable<T> skip(
+        Iterable<T> iterable, int numberToSkip) {
+      checkNotNull(iterable);
+      checkArgument(numberToSkip >= 0, "number to skip cannot be negative");
 
-    return new FluentIterable<T>() {
-      @Override
-      public Iterator<T> iterator() {
-        if (iterable instanceof List) {
-          List<T> list = (List<T>) iterable;
-          int toSkip = Math.min(list.size(), numberToSkip);
-          return list.subList(toSkip, list.size()).iterator();
-        }
-        Iterator<T> iterator = iterable.iterator();
-
-        Iterators.advance(iterator, numberToSkip);
-
-        /*
-         * We can't just return the iterator because an immediate call to its
-         * remove() method would remove one of the skipped elements instead of
-         * throwing an IllegalStateException.
-         */
-        return new Iterator<T>() {
-          boolean atStart = true;
-
-          @Override
-          public boolean hasNext() {
-            return iterator.hasNext();
-          }
-
-          @Override
-          @ParametricNullness
-          public T next() {
-            T result = iterator.next();
-            atStart = false; // not called if next() fails
-            return result;
-          }
-
-          @Override
-          public void remove() {
-            checkRemove(!atStart);
-            iterator.remove();
-          }
-        };
+      // Fast-path: nothing to skip.
+      if (numberToSkip == 0) {
+        return iterable;
       }
 
-      @Override
-      public Spliterator<T> spliterator() {
-        if (iterable instanceof List) {
-          List<T> list = (List<T>) iterable;
-          int toSkip = Math.min(list.size(), numberToSkip);
-          return list.subList(toSkip, list.size()).spliterator();
-        } else {
+      // Fast-path for lists: subList is a cheap view for ArrayList and others.
+      if (iterable instanceof List) {
+        List<T> list = (List<T>) iterable;
+        int toSkip = Math.min(list.size(), numberToSkip);
+        return list.subList(toSkip, list.size());
+      }
+
+      // If we have a Collection (but not a List), we can check size to possibly
+      // avoid creating a wrapper and advancing an iterator unnecessarily.
+      if (iterable instanceof Collection) {
+        int size = ((Collection<?>) iterable).size();
+        if (numberToSkip >= size) {
+          // Return a shared empty iterable view when everything is skipped.
+          @SuppressWarnings("unchecked") // safe: empty list is assignable to Iterable<T>
+          Iterable<T> empty = (Iterable<T>) java.util.Collections.emptyList();
+          return empty;
+        }
+        // Otherwise fall through to creating an iterable that will advance the iterator.
+      }
+
+      return new FluentIterable<T>() {
+        @Override
+        public Iterator<T> iterator() {
+          Iterator<T> iterator = iterable.iterator();
+
+          Iterators.advance(iterator, numberToSkip);
+
+          /*
+           * We can't just return the iterator because an immediate call to its
+           * remove() method would remove one of the skipped elements instead of
+           * throwing an IllegalStateException.
+           */
+          return new Iterator<T>() {
+            boolean atStart = true;
+
+            @Override
+            public boolean hasNext() {
+              return iterator.hasNext();
+            }
+
+            @Override
+            @ParametricNullness
+            public T next() {
+              T result = iterator.next();
+              atStart = false; // not called if next() fails
+              return result;
+            }
+
+            @Override
+            public void remove() {
+              checkRemove(!atStart);
+              iterator.remove();
+            }
+          };
+        }
+
+        @Override
+        public Spliterator<T> spliterator() {
+          // For non-list iterables, preserve existing behavior using streams.
           return Streams.stream(iterable).skip(numberToSkip).spliterator();
         }
-      }
-    };
-  }
+      };
+    }
 
   /**
    * Returns a view of {@code iterable} containing its first {@code limitSize} elements. If {@code
