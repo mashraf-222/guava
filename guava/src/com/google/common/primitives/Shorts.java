@@ -180,14 +180,52 @@ public final class Shorts extends ShortsMethodsForWeb {
       return 0;
     }
 
-    outer:
-    for (int i = 0; i < array.length - target.length + 1; i++) {
-      for (int j = 0; j < target.length; j++) {
-        if (array[i + j] != target[j]) {
-          continue outer;
+    // Fast path for single-element target to avoid KMP overhead.
+    if (target.length == 1) {
+      short t = target[0];
+      for (int i = 0, n = array.length; i < n; i++) {
+        if (array[i] == t) {
+          return i;
         }
       }
-      return i;
+      return -1;
+    }
+
+    int n = array.length;
+    int m = target.length;
+    if (m > n) {
+      return -1;
+    }
+
+    // Build longest proper prefix which is also suffix (lps) array for KMP.
+    int[] lps = new int[m];
+    lps[0] = 0;
+    for (int i = 1, len = 0; i < m; ) {
+      if (target[i] == target[len]) {
+        len++;
+        lps[i] = len;
+        i++;
+      } else if (len > 0) {
+        len = lps[len - 1];
+      } else {
+        lps[i] = 0;
+        i++;
+      }
+    }
+
+    // KMP search
+    for (int i = 0, j = 0; i < n; ) {
+      if (array[i] == target[j]) {
+        i++;
+        j++;
+        if (j == m) {
+          return i - j;
+        }
+      } else if (j > 0) {
+        j = lps[j - 1];
+      } else {
+        i++;
+      }
     }
     return -1;
   }
