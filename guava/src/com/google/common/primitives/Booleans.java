@@ -271,7 +271,14 @@ public final class Booleans {
   public static boolean[] ensureCapacity(boolean[] array, int minLength, int padding) {
     checkArgument(minLength >= 0, "Invalid minLength: %s", minLength);
     checkArgument(padding >= 0, "Invalid padding: %s", padding);
-    return (array.length < minLength) ? Arrays.copyOf(array, minLength + padding) : array;
+    int length = array.length;
+    if (length < minLength) {
+      int newLength = minLength + padding;
+      boolean[] copy = new boolean[newLength];
+      System.arraycopy(array, 0, copy, 0, length);
+      return copy;
+    }
+    return array;
   }
 
   /**
