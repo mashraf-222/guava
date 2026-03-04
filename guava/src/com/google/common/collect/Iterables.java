@@ -940,6 +940,8 @@ public final class Iterables {
          */
         return new Iterator<T>() {
           boolean atStart = true;
+    private final Iterator<? extends F> iterator;
+    private final Function<? super F, ? extends T> function;
 
           @Override
           public boolean hasNext() {
