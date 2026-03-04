@@ -883,7 +883,19 @@ public final class Iterables {
       if (c.isEmpty()) {
         return defaultValue;
       } else if (iterable instanceof List) {
-        return getLastInNonemptyList((List<? extends T>) iterable);
+        // Optimize for RandomAccess lists and Deque-implementing lists (e.g., LinkedList).
+        List<? extends T> list = (List<? extends T>) iterable;
+        if (list instanceof RandomAccess) {
+          return list.get(list.size() - 1);
+        }
+        if (list instanceof java.util.Deque) {
+          // Deque#getLast is O(1) for Deque implementations such as LinkedList.
+          return ((java.util.Deque<? extends T>) list).getLast();
+        }
+        // Fall back to a single listIterator traversal to retrieve the last element,
+        // avoiding potential multiple traversals or inefficient indexed access.
+        java.util.ListIterator<? extends T> it = list.listIterator(list.size());
+        return it.previous();
       } else if (iterable instanceof SortedSet) {
         return ((SortedSet<? extends T>) iterable).last();
       }
