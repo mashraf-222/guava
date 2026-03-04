@@ -180,8 +180,8 @@ public final class Lists {
   @SuppressWarnings("NonApiType") // acts as a direct substitute for a constructor call
   public static <E extends @Nullable Object> ArrayList<E> newArrayListWithCapacity(
       int initialArraySize) {
-    checkNonnegative(initialArraySize, "initialArraySize"); // for GWT.
-    return new ArrayList<>(initialArraySize);
+    int capacity = checkNonnegative(initialArraySize, "initialArraySize"); // for GWT.
+    return new ArrayList<>(capacity);
   }
 
   /**
