@@ -260,7 +260,35 @@ public final class Iterables {
    */
   @ParametricNullness
   public static <T extends @Nullable Object> T getOnlyElement(Iterable<T> iterable) {
-    return Iterators.getOnlyElement(iterable.iterator());
+    // Fast-path for Collections: avoid allocating or advancing an iterator when possible.
+    if (iterable instanceof Collection) {
+      Collection<T> c = (Collection<T>) iterable;
+      int size = c.size();
+      if (size == 1) {
+        // For RandomAccess lists, use direct indexing to avoid iterator allocation.
+        if (c instanceof List && c instanceof RandomAccess) {
+          return ((List<T>) c).get(0);
+        }
+        // For other collections, a single iterator.next() is minimal allocation.
+        return c.iterator().next();
+      }
+      if (size == 0) {
+        throw new NoSuchElementException();
+      }
+      // size > 1
+      throw new IllegalArgumentException("Iterable contains more than one element");
+    }
+
+    // Fallback for non-Collection Iterables: mirror the original iterator-based semantics.
+    Iterator<T> it = iterable.iterator();
+    if (!it.hasNext()) {
+      throw new NoSuchElementException();
+    }
+    T first = it.next();
+    if (it.hasNext()) {
+      throw new IllegalArgumentException("Iterable contains more than one element");
+    }
+    return first;
   }
 
   /**
