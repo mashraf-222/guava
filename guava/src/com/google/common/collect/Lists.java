@@ -851,6 +851,11 @@ public final class Lists {
     } else if (list instanceof ReverseList) {
       return ((ReverseList<T>) list).getForwardList();
     } else if (list instanceof RandomAccess) {
+      // Fast-path: for random-access lists with 0 or 1 elements the reversed view is identical to
+      // the original list, so avoid allocating a wrapper.
+      if (list.size() <= 1) {
+        return list;
+      }
       return new RandomAccessReverseList<>(list);
     } else {
       return new ReverseList<>(list);
