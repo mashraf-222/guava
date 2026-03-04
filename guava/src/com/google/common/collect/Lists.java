@@ -698,9 +698,24 @@ public final class Lists {
   public static <T extends @Nullable Object> List<List<T>> partition(List<T> list, int size) {
     checkNotNull(list);
     checkArgument(size > 0);
-    return (list instanceof RandomAccess)
-        ? new RandomAccessPartition<>(list, size)
-        : new Partition<>(list, size);
+
+    boolean isRandomAccess = list instanceof RandomAccess;
+    int listSize = list.size();
+
+    // Fast-paths for trivial cases to avoid unnecessary wrapper allocation:
+    // - Empty list: preserve RandomAccess vs non-RandomAccess behavior from the original implementation.
+    if (listSize == 0) {
+      return isRandomAccess ? Collections.emptyList() : new Partition<>(list, size);
+    }
+
+    // - If the partition size is >= the list size, there's only one partition (the whole list).
+    //   Preserve RandomAccess behavior for RandomAccess lists; for non-RandomAccess lists we can
+    //   safely return Collections.singletonList(list) which avoids allocating a Partition wrapper.
+    if (size >= listSize) {
+      return isRandomAccess ? new RandomAccessPartition<>(list, size) : Collections.singletonList(list);
+    }
+
+    return isRandomAccess ? new RandomAccessPartition<>(list, size) : new Partition<>(list, size);
   }
 
   private static class Partition<T extends @Nullable Object> extends AbstractList<List<T>> {
