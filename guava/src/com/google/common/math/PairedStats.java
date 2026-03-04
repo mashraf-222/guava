@@ -93,8 +93,9 @@ public final class PairedStats implements Serializable {
    * @throws IllegalStateException if the dataset is empty
    */
   public double populationCovariance() {
-    checkState(count() != 0);
-    return sumOfProductsOfDeltas / count();
+    long n = xStats.count();
+    checkState(n != 0);
+    return sumOfProductsOfDeltas / n;
   }
 
   /**
