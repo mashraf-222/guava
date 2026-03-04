@@ -639,7 +639,17 @@ public final class Iterables {
    */
   public static <T extends @Nullable Object> boolean all(
       Iterable<T> iterable, Predicate<? super T> predicate) {
-    return Iterators.all(iterable.iterator(), predicate);
+    // Inline iteration to avoid the extra method call and potential wrapper allocation from
+    // delegating to Iterators.all(...). Behavior (including exceptions) is preserved: if
+    // iterable is null, iterable.iterator() will throw NullPointerException as before; if
+    // predicate is null, invoking predicate.apply(...) will throw NullPointerException.
+    Iterator<T> it = iterable.iterator();
+    while (it.hasNext()) {
+      if (!predicate.apply(it.next())) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
