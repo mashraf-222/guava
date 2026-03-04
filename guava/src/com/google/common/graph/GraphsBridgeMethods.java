@@ -15,8 +15,9 @@ abstract class GraphsBridgeMethods {
     return Graphs.transitiveClosure(graph);
   }
 
-  @SuppressWarnings("PreferredInterfaceType")
+  @SuppressWarnings({"PreferredInterfaceType", "unchecked", "rawtypes"})
   public static <N> Set<N> reachableNodes(Graph<N> graph, N node) {
-    return Graphs.reachableNodes(graph, node);
+    // Forward via raw types and a single unchecked cast to reduce generic-dispatch overhead.
+    return (Set<N>) Graphs.reachableNodes((Graph) graph, node);
   }
 }
