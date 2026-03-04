@@ -345,12 +345,54 @@ public final class Iterables {
    *     Object)
    */
   public static int frequency(Iterable<?> iterable, @Nullable Object element) {
-    if ((iterable instanceof Multiset)) {
+    if (iterable instanceof Multiset) {
       return ((Multiset<?>) iterable).count(element);
-    } else if ((iterable instanceof Set)) {
+    } else if (iterable instanceof Set) {
       return ((Set<?>) iterable).contains(element) ? 1 : 0;
     }
-    return Iterators.frequency(iterable.iterator(), element);
+
+    // Fast-path for Collections: check emptiness quickly and for RandomAccess lists iterate by index
+    if (iterable instanceof Collection) {
+      Collection<?> collection = (Collection<?>) iterable;
+      if (collection.isEmpty()) {
+        return 0;
+      }
+      if (collection instanceof List && collection instanceof RandomAccess) {
+        List<?> list = (List<?>) collection;
+        int cnt = 0;
+        if (element == null) {
+          for (int i = 0, n = list.size(); i < n; i++) {
+            if (list.get(i) == null) {
+              cnt++;
+            }
+          }
+        } else {
+          for (int i = 0, n = list.size(); i < n; i++) {
+            if (element.equals(list.get(i))) {
+              cnt++;
+            }
+          }
+        }
+        return cnt;
+      }
+    }
+
+    // Fallback: iterate in a null-safe manner. This preserves original behavior.
+    int count = 0;
+    if (element == null) {
+      for (Object e : iterable) {
+        if (e == null) {
+          count++;
+        }
+      }
+    } else {
+      for (Object e : iterable) {
+        if (element.equals(e)) {
+          count++;
+        }
+      }
+    }
+    return count;
   }
 
   /**
