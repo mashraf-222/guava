@@ -529,6 +529,12 @@ public final class Iterables {
       Iterable<T> iterable, int size) {
     checkNotNull(iterable);
     checkArgument(size > 0);
+    // Fast-path for lists to avoid an extra wrapper/iterator allocation and indirection.
+    if (iterable instanceof List) {
+      @SuppressWarnings("unchecked")
+      List<T> list = (List<T>) iterable;
+      return com.google.common.collect.Lists.partition(list, size);
+    }
     return new FluentIterable<List<T>>() {
       @Override
       public Iterator<List<T>> iterator() {
