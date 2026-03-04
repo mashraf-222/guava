@@ -78,7 +78,7 @@ final class Murmur3_32HashFunction extends AbstractHashFunction implements Seria
 
   @Override
   public int bits() {
-    return 32;
+    return BITS;
   }
 
   @Override
@@ -425,4 +425,5 @@ final class Murmur3_32HashFunction extends AbstractHashFunction implements Seria
   }
 
   private static final long serialVersionUID = 0L;
+    private static final int BITS = 32;
 }
