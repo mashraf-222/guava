@@ -210,7 +210,12 @@ public final class Booleans {
    *     such index exists.
    */
   public static int lastIndexOf(boolean[] array, boolean target) {
-    return lastIndexOf(array, target, 0, array.length);
+    for (int i = array.length - 1; i >= 0; i--) {
+      if (array[i] == target) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   // TODO(kevinb): consider making this public
