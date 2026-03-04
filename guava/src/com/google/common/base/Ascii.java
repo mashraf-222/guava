@@ -607,16 +607,21 @@ public final class Ascii {
     if (length != s2.length()) {
       return false;
     }
+    // Cache locals used in the hot loop to reduce repeated static/final accesses.
+    final char mask = CASE_MASK;
+    final char a = 'a';
+    final char z = 'z';
     for (int i = 0; i < length; i++) {
       char c1 = s1.charAt(i);
       char c2 = s2.charAt(i);
       if (c1 == c2) {
         continue;
       }
-      int alphaIndex = getAlphaIndex(c1);
-      // This was also benchmarked using '&' to avoid branching (but always evaluate the rhs),
-      // however this showed no obvious improvement.
-      if (alphaIndex < 26 && alphaIndex == getAlphaIndex(c2)) {
+      // Fold both chars' ASCII case bits and compare. If the folded chars are equal and in the
+      // ASCII lowercase range, they were alphabetic and equal ignoring ASCII case.
+      char f1 = (char) (c1 | mask);
+      char f2 = (char) (c2 | mask);
+      if (f1 == f2 && f1 >= a && f1 <= z) {
         continue;
       }
       return false;
