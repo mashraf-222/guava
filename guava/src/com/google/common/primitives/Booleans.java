@@ -139,9 +139,42 @@ public final class Booleans {
    * @return {@code true} if {@code array[i] == target} for some value of {@code i}
    */
   public static boolean contains(boolean[] array, boolean target) {
-    for (boolean value : array) {
-      if (value == target) {
-        return true;
+    int len = array.length;
+    int i = 0;
+    // Specialize on target to avoid comparing booleans repeatedly and allow simpler checks.
+    if (target) {
+      int stop = len - 7;
+      // Unrolled loop checking 8 elements per iteration to reduce loop overhead.
+      while (i < stop) {
+        if (array[i] || array[i + 1] || array[i + 2] || array[i + 3]
+            || array[i + 4] || array[i + 5] || array[i + 6] || array[i + 7]) {
+          return true;
+        }
+        i += 8;
+      }
+      // Remainder
+      while (i < len) {
+        if (array[i]) {
+          return true;
+        }
+        i++;
+      }
+    } else {
+      int stop = len - 7;
+      // Unrolled loop for target == false
+      while (i < stop) {
+        if (!array[i] || !array[i + 1] || !array[i + 2] || !array[i + 3]
+            || !array[i + 4] || !array[i + 5] || !array[i + 6] || !array[i + 7]) {
+          return true;
+        }
+        i += 8;
+      }
+      // Remainder
+      while (i < len) {
+        if (!array[i]) {
+          return true;
+        }
+        i++;
       }
     }
     return false;
