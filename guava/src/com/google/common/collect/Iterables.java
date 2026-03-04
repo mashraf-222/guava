@@ -210,10 +210,10 @@ public final class Iterables {
   static <T extends @Nullable Object> @Nullable T removeFirstMatching(
       Iterable<T> removeFrom, Predicate<? super T> predicate) {
     checkNotNull(predicate);
-    Iterator<T> iterator = removeFrom.iterator();
-    while (iterator.hasNext()) {
+    final Predicate<? super T> pred = predicate;
+    for (Iterator<T> iterator = removeFrom.iterator(); iterator.hasNext(); ) {
       T next = iterator.next();
-      if (predicate.apply(next)) {
+      if (pred.apply(next)) {
         iterator.remove();
         return next;
       }
