@@ -150,7 +150,32 @@ public final class Shorts extends ShortsMethodsForWeb {
    *     such index exists.
    */
   public static int indexOf(short[] array, short target) {
-    return indexOf(array, target, 0, array.length);
+    // Preserve original null-check behavior
+    checkNotNull(array);
+    final short[] a = array;
+    final int len = a.length;
+    int i = 0;
+
+    // Fast-path: unrolled loop (8-way) to reduce loop overhead and branch misprediction.
+    int limit = len - 7;
+    while (i < limit) {
+      if (a[i] == target) return i;
+      if (a[i + 1] == target) return i + 1;
+      if (a[i + 2] == target) return i + 2;
+      if (a[i + 3] == target) return i + 3;
+      if (a[i + 4] == target) return i + 4;
+      if (a[i + 5] == target) return i + 5;
+      if (a[i + 6] == target) return i + 6;
+      if (a[i + 7] == target) return i + 7;
+      i += 8;
+    }
+
+    // Tail loop for remaining elements
+    while (i < len) {
+      if (a[i] == target) return i;
+      i++;
+    }
+    return -1;
   }
 
   // TODO(kevinb): consider making this public
