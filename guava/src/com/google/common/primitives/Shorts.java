@@ -591,12 +591,12 @@ public final class Shorts extends ShortsMethodsForWeb {
       return ((ShortArrayAsList) collection).toShortArray();
     }
 
-    Object[] boxedArray = collection.toArray();
+    Number[] boxedArray = collection.toArray(new Number[0]);
     int len = boxedArray.length;
     short[] array = new short[len];
     for (int i = 0; i < len; i++) {
       // checkNotNull for GWT (do not optimize)
-      array[i] = ((Number) checkNotNull(boxedArray[i])).shortValue();
+      array[i] = checkNotNull(boxedArray[i]).shortValue();
     }
     return array;
   }
