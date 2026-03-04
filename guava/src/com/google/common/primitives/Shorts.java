@@ -422,8 +422,27 @@ public final class Shorts extends ShortsMethodsForWeb {
       return "";
     }
 
-    // For pre-sizing a builder, just get the right order of magnitude
-    StringBuilder builder = new StringBuilder(array.length * 6);
+    // Precompute a tight initial capacity to avoid StringBuilder growth/resizing.
+    int sepLen = separator.length();
+    int estimated = sepLen * (array.length - 1);
+    // Compute digit lengths for each short value (fast integer comparisons; handle Short.MIN_VALUE).
+    for (int i = 0; i < array.length; i++) {
+      int v = array[i];
+      if (v < 0) {
+        if (v == Short.MIN_VALUE) {
+          // "-32768" -> 6 characters
+          estimated += 6;
+        } else {
+          int abs = -v;
+          estimated += 1 + digitsForPositive(abs); // include '-' sign
+        }
+      } else {
+        estimated += digitsForPositive(v);
+      }
+    }
+
+    // For pre-sizing a builder, use the computed estimate
+    StringBuilder builder = new StringBuilder(estimated);
     builder.append(array[0]);
     for (int i = 1; i < array.length; i++) {
       builder.append(separator).append(array[i]);
@@ -749,4 +768,19 @@ public final class Shorts extends ShortsMethodsForWeb {
 
     @GwtIncompatible @J2ktIncompatible private static final long serialVersionUID = 0;
   }
+
+    private static int digitsForPositive(int v) {
+      if (v < 10) {
+        return 1;
+      } else if (v < 100) {
+        return 2;
+      } else if (v < 1000) {
+        return 3;
+      } else if (v < 10000) {
+        return 4;
+      } else {
+        return 5;
+      }
+    }
+
 }
